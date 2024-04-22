@@ -5,21 +5,22 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    minify: 'esbuild',
+    minify: true,
+    cssMinify: 'esbuild',
     outDir: 'dist',
     emptyOutDir: true,
+    reportCompressedSize: true,
     lib: {
       entry: 'src/index.ts',
       name: 'CroquetQRCode',
       fileName: 'index',
     },
-    commonjsOptions: {
-    },
     rollupOptions: {
       external: ['react', 'react-dom'],
       output: {
+        banner: 'import "./styles.css";',
         globals: {
-          react: 'React',
+          'react': 'React',
           'react-dom': 'ReactDOM',
         },
       },
@@ -29,8 +30,10 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
-      'qrcode.react',
-
+      '@croquet/react',
+      '@uidotdev/usehooks',
+      'react-icons',
+      'react-qr-code',
     ],
   },
 })
