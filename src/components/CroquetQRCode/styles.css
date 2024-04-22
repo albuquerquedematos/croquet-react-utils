@@ -1,0 +1,65 @@
+@media (max-width: 500px) {
+  .croquet-qr-container {
+    position: relative !important;
+  }
+}
+
+.croquet-qr-container {
+  position: fixed;
+  bottom: 0px;
+  left: 0px;
+  margin: 0.5rem;
+  background-color: white;
+  border: 0.1rem solid black;
+  border-radius: 0.5rem;
+  transition: width 0.2s, padding 0.2s;
+}
+
+.croquet-qr-container .top-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.croquet-qr-container .top-bar > * {
+  border: 0.2rem solid black;
+  border-top: none;
+  border-right: none;
+  border-radius: 0 0 0 0.5rem;
+  padding: 0.5rem;
+  stroke-width: 0.05rem;
+}
+
+.croquet-qr-container .qr {
+  display: flex;
+  cursor: pointer;
+}
+
+.croquet-qr-container .qr svg {
+  aspect-ratio: 1;
+  width: 100%;
+  height: auto;
+}
+
+.croquet-qr-container .bottom-bar {
+  padding: 0.5rem;
+  padding-top: 0;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.croquet-qr-container .bottom-bar .url {
+  flex-grow: 1;
+  overflow-x: scroll;
+  white-space: nowrap;
+  padding: 0.5rem;
+}
+
+.croquet-qr-container .button {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid gray;
+  width: 15px;
+  height: 15px;
+  display: flex;
+}
