@@ -18,7 +18,7 @@ export default defineConfig({
     rollupOptions: {
       external: ['react', 'react-dom'],
       output: {
-        banner: 'import "./styles.css";',
+        banner: 'import "./style.css";',
         globals: {
           'react': 'React',
           'react-dom': 'ReactDOM',
