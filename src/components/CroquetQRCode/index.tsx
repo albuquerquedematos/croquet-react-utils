@@ -3,7 +3,8 @@ import QRCode from 'react-qr-code'
 import { useHover } from '@uidotdev/usehooks'
 import { BsPin, BsPinFill } from 'react-icons/bs'
 import { LuClipboardCheck, LuClipboardList } from 'react-icons/lu'
-import './styles.css'
+
+import './styles.scss'
 
 export default function CroquetQRCode() {
   const [isPinned, setIsPinned] = useState(false)
