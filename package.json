@@ -7,7 +7,7 @@
   "scripts": {
     "build": "vite build",
     "prepare": "vite build",
-    "dev": "cd dev && vite"
+    "dev": "cd dev && vite --host"
   },
   "type": "module",
   "author": "Croquet Corporation",
