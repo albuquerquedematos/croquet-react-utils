@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "types": ["vite/client"],
+    "jsx": "react-jsx",
+    "lib": ["es2022", "DOM"],
+    "paths": {
+      "@*": ["./../src/*"],
+      "@hooks/*": ["./../src/hooks/*"],
+      "@utils/*": ["./../src/utils/*"],
+      "@types/*": ["./../src/types/*"],
+      "@images/*": ["./../src/images/*"],
+      "@components/*": ["./../src/components/*"],
+    }
+  }
+}

@@ -1,0 +1,13 @@
+.croquet-dev-menu {
+  button {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+  }
+}
