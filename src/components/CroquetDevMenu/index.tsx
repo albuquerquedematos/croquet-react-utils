@@ -94,7 +94,6 @@ export default function CroquetDevMenu({ position = 'top-right', model }: DevMen
           >
             Inspect Model
           </Button>
-          {/* dropdown tree to select model or submodel */}
         </Card>
       </Dialog>
 
@@ -104,7 +103,7 @@ export default function CroquetDevMenu({ position = 'top-right', model }: DevMen
           modal: false,
           visible: modelInspectOpen,
           onHide: () => set_modelInspectOpen(false),
-          style: { minWidth: '25rem', width: '60vw', background: 'lightgray' },
+          style: { minWidth: '10rem', width: '60vw', background: 'lightgray', fontSize: '0.7rem' },
         }}
       >
         <InspectModel {...{ model }}/>

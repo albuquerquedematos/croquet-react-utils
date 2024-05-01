@@ -1,10 +1,12 @@
 import { useState, useContext } from 'react'
+import { JSONTree } from 'react-json-tree'
 
-import {
-  useReactModelRoot,
-  ReactModel,
-  // CroquetContext
-} from '@croquet/react'
+import // useReactModelRoot,
+// ReactModel,
+// CroquetContext
+'@croquet/react'
+
+import { filterModel } from '@utils'
 
 export default function InspectModel({ model }: { model?: any }) {
   // const rootModel = useReactModelRoot()
@@ -13,12 +15,15 @@ export default function InspectModel({ model }: { model?: any }) {
 
   return (
     <div className='inspect-model'>
-      <h1>Inspect Model</h1>
-      <pre>
-        {JSON.stringify(model, null, 2)}
-        {/* {JSON.stringify(rootModel, null, 2)} */}
-        {/* {JSON.stringify(ctx, null, 2)} */}
-      </pre>
+      {/* dropdown tree to select model or submodel */}
+
+      <JSONTree
+        {...{
+          data: filterModel(model),
+          labelRenderer: ([key]) => <strong>{key}</strong>,
+          shouldExpandNodeInitially: () => true,
+        }}
+      />
     </div>
   )
 }
