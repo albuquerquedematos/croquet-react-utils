@@ -8,6 +8,7 @@ import { MultiSelect } from 'primereact/multiselect'
 
 import { croquet } from '@images'
 import { updateUrlParams } from '@utils'
+import { InspectModel } from '@components'
 
 import { debugOptions } from './data'
 
@@ -23,12 +24,12 @@ const menuPosition = {
 
 interface DevMenuProps {
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  model?: any
 }
-export default function CroquetDevMenu({ position = 'top-right' }: DevMenuProps) {
+export default function CroquetDevMenu({ position = 'top-right', model }: DevMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [optionsDropdown, setOptionsDropdown] = useState<DebugOption[]>([])
-
-  const toggleDevMenu = () => setIsOpen(!isOpen)
+  const [modelInspectOpen, set_modelInspectOpen] = useState(false)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -48,13 +49,13 @@ export default function CroquetDevMenu({ position = 'top-right' }: DevMenuProps)
 
   // Card Pass-through props
   const pt = {
-    body: { style: { padding: '1rem' } },
+    body: { style: { padding: '1rem', marginTop: '1rem' } },
     content: { style: { padding: 0, display: 'flex', gap: '1rem' } },
   }
 
   return (
     <div className='croquet-dev-menu'>
-      <button onClick={toggleDevMenu} style={{ width: buttonSize, height: buttonSize, ...menuPosition[position] }}>
+      <button onClick={() => setIsOpen(true)} style={{ width: buttonSize, height: buttonSize, ...menuPosition[position] }}>
         <img src={croquet} alt='Croquet' style={{ width: '100%', height: '100%' }} />
       </button>
 
@@ -62,7 +63,7 @@ export default function CroquetDevMenu({ position = 'top-right' }: DevMenuProps)
         {...{
           header: 'Developer Menu',
           visible: isOpen,
-          onHide: toggleDevMenu,
+          onHide: () => setIsOpen(false),
           style: { minWidth: '25rem', width: '60vw', background: 'lightgray' },
           pt: { header: { style: { background: 'transparent' } }, content: { style: { background: 'transparent' } } },
         }}
@@ -81,6 +82,32 @@ export default function CroquetDevMenu({ position = 'top-right' }: DevMenuProps)
           />
           <Button {...{ onClick: () => handleOptionChange([]), style: { display: 'flex', justifyContent: 'center' } }}>Clear</Button>
         </Card>
+
+        <Card {...{ subTitle: 'Model', pt }}>
+          <Button
+            {...{
+              onClick: () => {
+                set_modelInspectOpen(true)
+                setIsOpen(false)
+              },
+            }}
+          >
+            Inspect Model
+          </Button>
+          {/* dropdown tree to select model or submodel */}
+        </Card>
+      </Dialog>
+
+      <Dialog
+        {...{
+          header: 'Inspect Model',
+          modal: false,
+          visible: modelInspectOpen,
+          onHide: () => set_modelInspectOpen(false),
+          style: { minWidth: '25rem', width: '60vw', background: 'lightgray' },
+        }}
+      >
+        <InspectModel {...{ model }}/>
       </Dialog>
     </div>
   )

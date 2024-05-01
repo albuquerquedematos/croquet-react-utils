@@ -7,7 +7,9 @@
   "scripts": {
     "build": "vite build",
     "prepare": "vite build",
-    "dev": "cd dev && vite --host"
+    "dev": "cd dev && vite --host",
+    "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' + && rm -f package-lock.json && rm -rf bun.lockb",
+    "link-local-bindings": "npm link ../croquet-react/bindings"
   },
   "type": "module",
   "author": "Croquet Corporation",
@@ -15,8 +17,9 @@
   "dependencies": {
     "@croquet/react": "^1.4.4",
     "@uidotdev/usehooks": "^2.4.1",
+    "primereact": "^10.6.3",
     "react-dom": "^18.2.0",
-    "react-icons": "^5.0.1",
+    "react-icons": "^5.2.0",
     "react-qr-code": "^2.0.12",
     "vite-tsconfig-paths": "^4.3.2"
   },
