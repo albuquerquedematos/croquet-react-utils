@@ -4,14 +4,14 @@
 
 import { Chip } from 'primereact/chip'
 
-export default function ViewInfo(v) {
+export default function ViewInfo(views) {
   // const views = useConnectedViews()
 
   return (
     <div>
-      <h2>{v.viewCount || 0} Connected Views</h2>
+      <h2>{views.viewCount || 0} Connected Views</h2>
       <div style={{ display: 'flex', gap: '0.2rem', flexWrap: 'wrap' }}>
-        {v?.views?.map((view: string) => (
+        {views?.views?.map((view: string) => (
           <Chip key={view} label={view} />
         ))}
       </div>

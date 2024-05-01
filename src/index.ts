@@ -3,6 +3,7 @@ import {
   CroquetDevMenu,
   InspectModel,
   ViewInfo,
+  SessionInfo,
 } from './components' //prettier-ignore
 
 import 'primereact/resources/themes/lara-light-cyan/theme.css'
@@ -12,4 +13,5 @@ export {
   CroquetDevMenu,
   InspectModel,
   ViewInfo,
+  SessionInfo,
 } //prettier-ignore
