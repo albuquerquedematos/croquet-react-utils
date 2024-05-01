@@ -6,6 +6,8 @@ const defaultOpts = {
 export default function filterModel(model, options = {}) {
   const { showMethods, exclude } = { ...defaultOpts, ...options }
 
+  if (!model) return 'No Model Found'
+
   function filterObject(obj) {
     let result = {}
     for (const [key, value] of Object.entries(obj)) {

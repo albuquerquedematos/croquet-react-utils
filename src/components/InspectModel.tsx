@@ -1,26 +1,36 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { JSONTree } from 'react-json-tree'
 
-import // useReactModelRoot,
-// ReactModel,
+import {
+  ReactModel,
+// useReactModelRoot,
 // CroquetContext
-'@croquet/react'
+} from '@croquet/react'
 
 import { filterModel } from '@utils'
 
-export default function InspectModel({ model }: { model?: any }) {
+export default function InspectModel({ model }: { model?: ReactModel }) {
   // const rootModel = useReactModelRoot()
   // const ctx = useCroquetContext()
   // const rootModel = useReactModelRoot<T>()
 
+  // const getModels = () => {
+  //   const models = []
+  //   for (const [key, value] of Object.entries(model)) {
+  //     console.log(key, value, value instanceof ReactModel)
+  //     if (value instanceof ReactModel) models.push(value)
+  //   }
+  //   return models
+  // }
+
   return (
     <div className='inspect-model'>
       {/* dropdown tree to select model or submodel */}
+      {/* Models: {JSON.stringify(getModels())} */}
 
       <JSONTree
         {...{
-          data: filterModel(model),
-          labelRenderer: ([key]) => <strong>{key}</strong>,
+          data: filterModel(model) || {},
           shouldExpandNodeInitially: () => true,
         }}
       />
