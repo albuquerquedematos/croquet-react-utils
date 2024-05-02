@@ -68,7 +68,7 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
           header: 'Developer Menu',
           visible: isOpen,
           onHide: () => setIsOpen(false),
-          style: { minWidth: '25rem', width: '60vw', background: 'lightgray' },
+          style: { minWidth: '25rem', width: '30rem', background: 'lightgray' },
           pt: { header: { style: { background: 'transparent' } }, content: { style: { background: 'transparent' } } },
         }}
       >
@@ -110,7 +110,7 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
           modal: false,
           visible: modelInspectOpen,
           onHide: () => set_modelInspectOpen(false),
-          style: { minWidth: '10rem', width: '60vw', height: '60vh', maxHeight: '100vh', background: 'lightgray', fontSize: '0.7rem' },
+          style: { minWidth: '10rem', width: '40rem', height: '60vh', maxHeight: '100vh', background: 'lightgray', fontSize: '0.7rem' },
         }}
       >
         <InspectModel {...{ model }}/>
@@ -122,7 +122,7 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
           modal: false,
           visible: sessionInspectOpen,
           onHide: () => set_sessionInspectOpen(false),
-          style: { minWidth: '10rem', width: '60vw', background: 'lightgray', fontSize: '0.7rem' },
+          style: { minWidth: '10rem', width: '40vw', background: 'lightgray', fontSize: '0.7rem' },
         }}
       >
         <SessionInfo {...{ views, session, changeSession }}/>

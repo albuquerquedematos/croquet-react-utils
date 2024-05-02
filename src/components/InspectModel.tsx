@@ -25,7 +25,7 @@ export default function InspectModel({ model }: { model?: ReactModel }) {
 
   return (
     <div className='inspect-model'>
-      {/* dropdown tree to select model or submodel */}
+      {/* dropdown tree to select model or sub-model */}
       {/* Models: {JSON.stringify(getModels())} */}
 
       <JSONTree
