@@ -8,7 +8,7 @@ import { MultiSelect } from 'primereact/multiselect'
 
 import { croquet } from '@images'
 import { updateUrlParams, theme } from '@utils'
-import { InspectModel, SessionInfo } from '@components'
+import { InspectModel, SessionInfo, Profiler } from '@components'
 
 import { debugOptions } from './data'
 
@@ -29,11 +29,13 @@ interface DevMenuProps {
   session?: any
   changeSession?: any
 }
-export default function CroquetDevMenu({ position = 'top-right', model, views, session, changeSession}: DevMenuProps) {
+export default function CroquetDevMenu({ position = 'top-right', model, views, session, changeSession }: DevMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [optionsDropdown, setOptionsDropdown] = useState<DebugOption[]>([])
+
   const [modelInspectOpen, set_modelInspectOpen] = useState(false)
   const [sessionInspectOpen, set_sessionInspectOpen] = useState(false)
+  const [profilerOpen, set_profilerOpen] = useState(false)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -84,22 +86,46 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
               style: { padding: 0, width: 'calc(100% - 6rem)' },
             }}
           />
-          <Button {...{ onClick: () => handleOptionChange([]), pt: theme.buttonPT, style: { display: 'flex', justifyContent: 'center' } }}>Clear</Button>
+          <Button {...{ onClick: () => handleOptionChange([]), pt: theme.buttonPT, style: { display: 'flex', justifyContent: 'center' } }}>
+            Clear
+          </Button>
         </Card>
 
         <Card {...{ pt }}>
-          <Button {...{ pt: theme.buttonPT, onClick: () => {
-            set_modelInspectOpen(true)
-            setIsOpen(false)
-          }}}>
+          <Button
+            {...{
+              pt: theme.buttonPT,
+              onClick: () => {
+                set_modelInspectOpen(true)
+                setIsOpen(false)
+              },
+            }}
+          >
             Inspect Model
           </Button>
 
-          <Button {...{ pt: theme.buttonPT, onClick: () => {
-            set_sessionInspectOpen(true)
-            setIsOpen(false)
-          }}}>
+          <Button
+            {...{
+              pt: theme.buttonPT,
+              onClick: () => {
+                set_sessionInspectOpen(true)
+                setIsOpen(false)
+              },
+            }}
+          >
             Inspect Session
+          </Button>
+
+          <Button
+            {...{
+              pt: theme.buttonPT,
+              onClick: () => {
+                set_profilerOpen(true)
+                setIsOpen(false)
+              },
+            }}
+          >
+            Profiler
           </Button>
         </Card>
       </Dialog>
@@ -113,7 +139,7 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
           style: { minWidth: '10rem', width: '40rem', height: '60vh', maxHeight: '100vh', background: 'lightgray', fontSize: '0.7rem' },
         }}
       >
-        <InspectModel {...{ model }}/>
+        <InspectModel {...{ model }} />
       </Dialog>
 
       <Dialog
@@ -125,9 +151,21 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
           style: { minWidth: '10rem', width: '40vw', background: 'lightgray', fontSize: '0.7rem' },
         }}
       >
-        <SessionInfo {...{ views, session, changeSession }}/>
+        <SessionInfo {...{ views, session, changeSession }} />
       </Dialog>
 
+      <Dialog
+        {...{
+          header: 'Profiler',
+          modal: false,
+          visible: profilerOpen,
+          onHide: () => set_profilerOpen(false),
+          // style: { minWidth: '10rem', width: '40vw', background: 'lightgray', fontSize: '0.7rem' },
+          style: { minWidth: '10rem', width: '50rem', background: 'lightgray', fontSize: '0.7rem' },
+        }}
+      >
+        <Profiler />
+      </Dialog>
     </div>
   )
 }
