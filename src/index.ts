@@ -2,6 +2,7 @@ import {
   CroquetQRCode,
   CroquetDevMenu,
   InspectModel,
+  Profiler,
   ViewInfo,
   SessionInfo,
 } from './components' //prettier-ignore
@@ -12,6 +13,7 @@ export {
   CroquetQRCode,
   CroquetDevMenu,
   InspectModel,
+  Profiler,
   ViewInfo,
   SessionInfo,
 } //prettier-ignore
