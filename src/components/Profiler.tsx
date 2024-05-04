@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useInterval } from '@hooks'
 
-import { InputNumber } from 'primereact/inputnumber'
 import { Chip } from 'primereact/chip'
+import { Slider } from 'primereact/slider'
+import { InputNumber } from 'primereact/inputnumber'
 
 import { 
   Chart,
@@ -52,12 +53,15 @@ const emptyFrame = { start: 0, total: 0, items: {}, users: 0, backlog: 0, networ
 // const types = ['start', 'total', 'items', 'backlog', 'network', 'activity']
 
 const _hiddenScales = ['start', 'total', 'items', 'users', 'backlog', 'network', 'latency', 'activity', 'connected']
+// const _hiddenScales = []
 // const stackedTypes = ['simulate', 'update', 'render', 'snapshot']
-const stackedTypes = ['backlog', 'network', 'activity', 'items', 'simulate']
+const stackedTypes = ['backlog', 'network', 'items']
 const otherTypes = []
-const hiddenScales = _hiddenScales.filter((scale) => stackedTypes.includes(scale) || otherTypes.includes(scale))
+const invertedTypes = ['activity']
+const hiddenScales = _hiddenScales.filter(
+  (scale) => stackedTypes.includes(scale) || otherTypes.includes(scale) || invertedTypes.includes(scale)
+)
 
-const alpha = 0.3
 const _colors: any = {
   total: 'black',
   update: 'blue',
@@ -81,6 +85,7 @@ export default function Profiler({ bufferSize: bfs = 60 }: ProfilerProps) {
   const [hide, set_hide] = useState({})
   const [paused, set_paused] = useState(false)
   const [colors, set_colors] = useState({})
+  const [opacity, set_opacity] = useState(0.5)
 
   useInterval(() => {
     const newFrames = [...window.CROQUETSTATS.frames]
@@ -103,9 +108,12 @@ export default function Profiler({ bufferSize: bfs = 60 }: ProfilerProps) {
         text: `Users: ${users + s}Connected: ${connected + s}Latency: ${latency + s}${framerate}`,
       },
     },
-    responsive: true,
-    scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } },
     animation: { duration: 0 },
+    responsive: true,
+    scales: {
+      x: { stacked: true, display: false },
+      y: { stacked: true, display: false, beginAtZero: true },
+    },
   }
 
   useEffect(() => {
@@ -115,7 +123,7 @@ export default function Profiler({ bufferSize: bfs = 60 }: ProfilerProps) {
     generateColors()
   }, [])
 
-  function generateColors() {
+  function generateColors(alpha = opacity) {
     var cs = {}
     Object.entries(_colors).forEach(([t, c]) => (cs[t] = rgba(c as string, alpha)))
     set_colors(cs)
@@ -131,7 +139,7 @@ export default function Profiler({ bufferSize: bfs = 60 }: ProfilerProps) {
         options={{ ...defaultOpts, scales: { ...defaultOpts.scales, ...hide } }}
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
         <InputNumber
           {...{
             value: bufferSize,
@@ -143,11 +151,24 @@ export default function Profiler({ bufferSize: bfs = 60 }: ProfilerProps) {
           }}
         />
 
-        <Chip {...{
-          label: paused ? 'Play' : 'Pause',
-          onClick: () => set_paused(!paused),
-          pt: { root: { style: { cursor: 'pointer' } } },
-        }} />
+        <Chip
+          {...{
+            label: paused ? 'Play' : 'Pause',
+            onClick: () => set_paused(!paused),
+            pt: { root: { style: { cursor: 'pointer' } } },
+          }}
+        />
+
+        <Slider
+          {...{
+            value: opacity,
+            onChange: (e) => set_opacity(e.value as any),
+            onSlideEnd: (e) => generateColors((e.value as any) / 100),
+            min: 1,
+            max: 100,
+            style: { width: '10rem' },
+          }}
+        />
       </div>
     </>
   )
@@ -175,6 +196,12 @@ function generateDatasets(frames: Frame[], colors) {
     }
   }
 
+  for (const type of invertedTypes) {
+    const data = frames.map((f) => -f[type]) as any
+    // console.log(data)
+    stack.push({ data, ...optsFromType(type, colors) })
+  }
+
   return stack
 }
 
@@ -185,36 +212,42 @@ function optsFromType(type: string, colors) {
         label: 'Items',
         yAxisID: 'items',
         backgroundColor: colors.update,
+        order: 5,
       }
     case 'backlog':
       return {
         label: 'Backlog',
         yAxisID: 'backlog',
         backgroundColor: colors.backlog,
+        order: 10,
       }
     case 'network':
       return {
         label: 'Network',
         yAxisID: 'network',
         backgroundColor: colors.network,
+        order: 7,
       }
     case 'activity':
       return {
         label: 'Activity',
         yAxisID: 'activity',
         backgroundColor: colors.snapshot,
+        order: 100,
       }
     case 'simulate':
       return {
         label: 'Simulate',
         yAxisID: 'simulate',
         backgroundColor: colors.simulate,
+        order: 1,
       }
     default:
       return {
         label: 'Unknown',
         yAxisID: 'unknown',
         backgroundColor: colors.unknown,
+        order: 1000,
       }
   }
 }
