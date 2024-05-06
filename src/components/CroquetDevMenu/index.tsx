@@ -164,7 +164,7 @@ export default function CroquetDevMenu({ position = 'top-right', model, views, s
           style: { minWidth: '10rem', width: '50rem', background: 'lightgray', fontSize: '0.7rem' },
         }}
       >
-        <Profiler />
+        <Profiler {...{ session }}/>
       </Dialog>
     </div>
   )
