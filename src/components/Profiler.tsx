@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useInterval } from '@hooks'
+import { useInterval } from 'usehooks-ts'
 
 import { Chip } from 'primereact/chip'
 import { Slider } from 'primereact/slider'
 import { InputNumber } from 'primereact/inputnumber'
+
+import { BsQuestionCircle } from 'react-icons/bs'
 
 import { 
   Chart as ChartJS,
@@ -76,6 +78,18 @@ const _colors: any = {
   unknown: 'pink',
 }
 
+const helpMessage = `
+  Latency - Roundtrip time to the reflector
+  Network - Time since last reflector message
+  Total - Total time to process a frame
+  Backlog - Simulation time to catch up to reflector time (ideally 0)
+  Update - Simulation time spent for a frame
+  Render - Time to render a given frame
+  Simulate - Simulation time (based on slowest connected view)
+  Snapshot - Time it took to take a snapshot`
+
+//Backlog: (Event) Time since last reflector message
+
 // Activity: ms since we last sent something to the reflector (Useless to view)
 // Backlog: ms of simulation time to catch up to reflector time (ideally 0)
 // Network: ms since last message received from reflector
@@ -109,19 +123,15 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
 
   const [bufferMax, set_bufferMax] = useState([])
 
-  useInterval(() => {
-    const newFrames = [...window.CROQUETSTATS.frames]
-    if (paused) return
-    // const newLatencies = session?.latencies?.map((l) => l.ms) || []
-    const newLatencies = session?.latencies || []
-    if (!equalObjects(latencies, newLatencies)) set_latencies(newLatencies)
-    if (!equalObjects(newFrames, frames)) set_frames(newFrames)
-  }, 0)
-
+  useInterval(() => updateGraph(), 0)
   useInterval(() => updateBufferMax(), 1000)
 
-  const frameBuffer = frames.slice(-bufferSize)
+  useEffect(() => {
+    updateGraph()
+    updateScales()
+  }, [])
 
+  const frameBuffer = frames.slice(-bufferSize)
   const lastIdx = frameBuffer.length - 1
   const users = frameBuffer?.[lastIdx]?.users
   const connected = frameBuffer?.[lastIdx]?.connected ? 'Yes' : 'No'
@@ -154,7 +164,13 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     scales: { x: { stacked: true, display: false } },
   }
 
-  useEffect(() => updateScales(), [])
+  function updateGraph() {
+    if (paused) return
+    const newFrames = [...window.CROQUETSTATS.frames]
+    const newLatencies = session?.latencies || []
+    if (!equalObjects(latencies, newLatencies)) set_latencies(newLatencies)
+    if (!equalObjects(newFrames, frames)) set_frames(newFrames)
+  }
 
   function updateScales() {
     const scales = {} as any
@@ -173,7 +189,7 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
   }
 
   function getMax(path: string) {
-    const arr = frameBuffer.map((f) => getNested(f, path.split('.'))) || [] as any
+    const arr = frameBuffer.map((f) => getNested(f, path.split('.'))) || ([] as any)
     const clean = arr.filter((a) => a) // Remove any null or undefined values from the array
     return Math.max(...clean)
   }
@@ -213,34 +229,62 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
       />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
-        <InputNumber showButtons {...{ min: 1, max: 120, step: 5, value: bufferSize, onValueChange: (e) => set_bufferSize(e.value) }} />
+        <Label label='Buffer Size'>
+          <InputNumber showButtons {...{ min: 1, max: 120, step: 5, value: bufferSize, onValueChange: (e) => set_bufferSize(e.value) }} />
+        </Label>
 
-        <Chip {...{ label: paused ? 'Play' : 'Pause', onClick: () => set_paused(!paused), pt: ptChipBtn }} />
+        <Label label='Opacity'>
+          <Slider
+            {...{
+              min: 1,
+              max: 100,
+              value: opacity,
+              onChange: (e) => set_opacity(e.value as any),
+              onSlideEnd: (e) => generateColors((e.value as any) / 100),
+              style: { width: '10rem' },
+            }}
+          />
+        </Label>
 
-        <Chip {...{ label: 'Force Snapshot', onClick: () => (window.CROQUETVM.controller.cpuTime = 100000), pt: ptChipBtn }} />
-
-        <Slider
-          {...{
-            min: 1,
-            max: 100,
-            value: opacity,
-            onChange: (e) => set_opacity(e.value as any),
-            onSlideEnd: (e) => generateColors((e.value as any) / 100),
-            style: { width: '10rem' },
-          }}
-        />
-      </div>
-
-      <div style={{ marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}> Buffer Max</div>
-      <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
-        {bufferMax.map(([label, path]) => (
-          <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
-            <div>{label}</div>
-            <code style={{ textWrap: 'nowrap' }}>{validMax(path)}</code>
+        <Label label='Controls'>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem' }}>
+            <Chip {...{ label: paused ? 'Play' : 'Pause', onClick: () => set_paused(!paused), pt: ptChipBtn }} />
+            <Chip {...{ label: 'Snapshot', onClick: () => (window.CROQUETVM.controller.cpuTime = 100000), pt: ptChipBtn }} />
+            <Chip
+              {...{
+                template: (
+                  <span className='p-chip-text'>
+                    <BsQuestionCircle size={'1.2rem'} style={{ verticalAlign: 'middle' }} />
+                  </span>
+                ),
+                onClick: () => alert(helpMessage),
+                pt: ptChipBtn,
+              }}
+            />
           </div>
-        ))}
+        </Label>
       </div>
+
+      <Label label='Buffer Max'>
+        <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
+          {bufferMax.map(([label, path]) => (
+            <div key={path} style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+              <div>{label}</div>
+              <code style={{ textWrap: 'nowrap' }}>{validMax(path)}</code>
+            </div>
+          ))}
+        </div>
+      </Label>
     </>
+  )
+}
+
+function Label({ children, label, style = {}, labelStyle = {} }) {
+  return (
+    <div style={style}>
+      <div style={{ marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.8rem', marginTop: '1rem', ...labelStyle }}>{label}</div>
+      {children}
+    </div>
   )
 }
 
