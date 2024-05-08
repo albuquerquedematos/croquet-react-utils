@@ -12,8 +12,15 @@ export default class RootModel extends ReactModel {
   init(options) {
     super.init(options)
     this.subscribe(this.id, 'ping', this.ping)
+    this.simulate()
   }
-  ping() {}
+  simulate() {
+    for (let i = 0; i < 100000; i++) {
+      const b = Math.sin(this.now() / 1000)
+    }
+    this.future(100).simulate()
+  }
+  ping() { console.log('Pong') }
 }
 RootModel.register('RootModel')
 
@@ -29,6 +36,7 @@ createRoot(container!).render(
         name: 'test',
         options: {
           trackViews: true,
+          tps: 0,
         },
       }}
     >

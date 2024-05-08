@@ -11,3 +11,7 @@ export function wordify(str) {
   // some => Some
   return str.replace(/[-_]/g, ' ').replace(/(?:^|\s)\S/g, (a) => a.toUpperCase())
 }
+
+export function getNested(obj, paths) {
+  return paths.reduce((acc, path) => acc[path], obj)
+}

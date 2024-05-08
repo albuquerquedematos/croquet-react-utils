@@ -23,7 +23,7 @@ import {
   Legend,
 } from 'chart.js' //prettier-ignore
 import { Bar, Line, Chart } from 'react-chartjs-2'
-import { rgba, equalObjects, wordify } from '@utils'
+import { rgba, equalObjects, wordify, round, getNested } from '@utils'
 
 ChartJS.register(
   CategoryScale, LinearScale, 
@@ -37,6 +37,7 @@ declare global {
     CROQUETSTATS: {
       frames: Frame[]
     }
+    CROQUETVM: any
   }
 }
 
@@ -55,28 +56,20 @@ type Frame = {
 // const order = ['simulate', 'update', 'render', 'snapshot']
 // const types = ['total', 'items', 'backlog', 'network', 'activity']
 // const types = ['start', 'total', 'items', 'backlog', 'network', 'activity']
+// const hidden = ['start', 'total', 'items', 'users', 'backlog', 'network', 'latency', 'activity', 'connected']
 
-// const _hiddenScales = ['start', 'total', 'items', 'users', 'backlog', 'network', 'latency', 'activity', 'connected']
-// const _hiddenScales = []
-const _hiddenScales = ['activity', 'items', 'backlog', 'network', 'latency']
-// const stackedTypes = ['simulate', 'update', 'render', 'snapshot']
-// const stackedTypes = ['backlog', 'network', 'items']
-const stackedTypes = ['activity', 'items']
-const lineTypes = ['latency']
+const dt: any = {
+  line: ['latency'],
+  bar: {
+    // normal: ['activity'],
+    stacked: ['items_simulate', 'items_snapshot', 'items_update', 'items_render'],
+    inverted: ['backlog', 'network'],
+  },
+  show: [],
+  // show: ['items_update', 'items_render', 'items_snapshot', 'items_simulate'],
+}
 
-// const dataTypes = {
-//   line: ['latency'],
-//   bar: {
-//     stacked: ['activity', 'items'],
-//     inverted: ['backlog', 'network'],
-//   },
-// }
-
-// const invertedTypes = ['activity']
-const invertedTypes = ['backlog', 'network']
-const hiddenScales = _hiddenScales.filter(
-  (scale) => stackedTypes.includes(scale) || invertedTypes.includes(scale) || lineTypes.includes(scale),
-)
+const ptChipBtn = { root: { style: { cursor: 'pointer' } } }
 
 const _colors: any = {
   total: 'black',
@@ -96,6 +89,12 @@ const _colors: any = {
 
 // Items.render = time to render a given frame
 // Items.update = simulation time spent for a frame
+// Items.simulate = time to simulate a frame
+// Items.snapshot = time to take a snapshot
+
+// FrameTime = time to process a frame
+
+// min of all the totals. "normal render time"
 
 type ProfilerProps = {
   bufferSize?: number
@@ -113,9 +112,12 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
   const [bufferSize, set_bufferSize] = useState(bfs)
 
   const [colors, set_colors] = useState({})
-  const [opacity, set_opacity] = useState(20)
-  const [min, set_min] = useState(-150)
-  const [max, set_max] = useState(1000)
+  const [opacity, set_opacity] = useState(60)
+  const [min, set_min] = useState(-100)
+  const [max, set_max] = useState(50)
+
+  const [itemMaxAll, set_itemMaxAll] = useState([0, 0, 0])
+  const [itemMax, set_itemMax] = useState([0, 0, 0])
 
   useInterval(() => {
     const newFrames = [...window.CROQUETSTATS.frames]
@@ -125,6 +127,8 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     if (!equalObjects(latencies, newLatencies)) set_latencies(newLatencies)
     if (!equalObjects(newFrames, frames)) set_frames(newFrames)
   }, 0)
+
+  useInterval(() => updateItemMax(), 1000)
 
   const frameBuffer = frames.slice(-bufferSize)
 
@@ -159,19 +163,17 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     responsive: true,
     scales: {
       x: { stacked: true, display: false, barThickness: 10 },
-      y: { stacked: true, display: false, beginAtZero: true },
     },
   }
 
   useEffect(() => updateScales(), [])
 
   function updateScales() {
-    const scales = {}
+    const scales = {} as any
     set_hide(scales)
     generateColors()
-    setTimeout(() => {
-      for (const scale of hiddenScales) scales[scale] = { display: false, min, max }
-    }, 1)
+    setTimeout(() => scales.stack = { stacked: true, display: false, min, max }, 1)
+    // setTimeout(() => hiddenScales.forEach((s) => (scales[s] = { display: false, min, max })), 1)
   }
 
   function generateColors(alpha = opacity / 100) {
@@ -180,116 +182,129 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     set_colors(cs)
   }
 
+  function updateItemMax() {
+    const updates = frameBuffer.map((f) => f?.items?.update) || []
+    const renders = frameBuffer.map((f) => f?.items?.render) || []
+    const simulates = frameBuffer.map((f) => f?.items?.simulate) || []
+    const newMaxAll = [Math.max(...updates, itemMaxAll[0]), Math.max(...renders, itemMaxAll[1]), Math.max(...simulates, itemMaxAll[2])]
+    const newMax = [Math.max(...updates), Math.max(...renders), Math.max(...simulates)]
+    if (!equalObjects(newMaxAll, itemMaxAll)) set_itemMaxAll(newMaxAll)
+    if (!equalObjects(newMax, itemMax)) set_itemMax(newMax)
+  }
+
+  function getScaleMinMax(trackedScales, step) {
+    // trac
+  }
+
+
   return (
     <>
       <Chart
-        data={{
-          labels: frameBuffer.map((f) => f.start),
-          datasets: generateDatasets(frameBuffer, colors, latencies) as any,
+        {...{
+          type: 'bar',
+          data: {
+            labels: frameBuffer.map((f) => f.start),
+            datasets: generateDatasets(frameBuffer, colors, latencies, min, max) as any,
+          },
+          // options: defaultOpts as any,
+          options: { ...defaultOpts, scales: { ...defaultOpts.scales, ...hide } } as any,
         }}
-        options={{ ...defaultOpts, scales: { ...defaultOpts.scales, ...hide } } as any}
       />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
-        <InputNumber
-          {...{
-            value: bufferSize,
-            onValueChange: (e) => set_bufferSize(e.value),
-            showButtons: true,
-            min: 1,
-            max: 120,
-            step: 5,
-          }}
-        />
+        <InputNumber showButtons {...{ min: 1, max: 120, step: 5, value: bufferSize, onValueChange: (e) => set_bufferSize(e.value) }} />
 
-        <Chip
-          {...{
-            label: paused ? 'Play' : 'Pause',
-            onClick: () => set_paused(!paused),
-            pt: { root: { style: { cursor: 'pointer' } } },
-          }}
-        />
+        <Chip {...{ label: paused ? 'Play' : 'Pause', onClick: () => set_paused(!paused), pt: ptChipBtn }} />
+
+        <Chip {...{ label: 'Force Snapshot', onClick: () => (window.CROQUETVM.controller.cpuTime = 100000), pt: ptChipBtn }} />
 
         <Slider
           {...{
+            min: 1,
+            max: 100,
             value: opacity,
             onChange: (e) => set_opacity(e.value as any),
             onSlideEnd: (e) => generateColors((e.value as any) / 100),
-            min: 1,
-            max: 100,
             style: { width: '10rem' },
           }}
         />
       </div>
 
       <div style={{ marginTop: '1rem' }}>
-        <p>Min ({min}) / Max ({max})</p>
+        <p>
+          Min ({min}) / Max ({max})
+        </p>
         <Slider
           range
           {...{
             value: [min, max],
             min: -2000,
-            max: 5000,
-            step: 100,
+            max: 2000,
+            step: 10,
             onChange: (e) => {
-              const nv = e.value as number[]
-              if (nv[0] <= -100) set_min(nv[0] as number)
-              if (nv[1] >= 100) set_max(nv[1] as number)
-              if (nv[0] <= -100 && nv[1] >= 100) updateScales()
+              set_min(e.value[0] as number)
+              set_max(e.value[1] as number)
+              updateScales()
             },
             onSlideEnd: () => updateScales(),
           }}
         />
       </div>
+
+      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+        <span> Session / Buffer Max</span>
+        <span>Update ---- {round(itemMaxAll[0], 2)} ms  /  {round(itemMax[0], 2)} ms</span>
+        <span>Render ---- {round(itemMaxAll[1], 2)} ms  /  {round(itemMax[1], 2)} ms</span>
+        <span>Simulate -- {round(itemMaxAll[2], 2)} ms  /  {round(itemMax[2], 2)} ms</span>
+      </div>
     </>
   )
 }
 
-// TODO? Auto Update the scale min and max based on the data (ignoring activity and network)
-function updateMinMax(min, max) {
-  // 10, 100, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000
-}
-
-function generateDatasets(frames: Frame[], colors, latencies = []) {
+function generateDatasets(frames: Frame[], colors, latencies = [], min, max) {
   if (!frames.length) return []
-  const stack = stackedTypes.map((type) => {
-    const data = frames.map((f) => {
-      let sum = 0
-      for (const t of stackedTypes) {
-        if (t === type) break
-        sum += f[t]
-      }
-      const sum2 = sum + f[type] || 0
-      return [sum, sum2]
-    })
-    return { data, ...optsFromType(type, colors) }
-  })
+  const datasets = []
 
-  for (const type of invertedTypes) {
-    const data = frames.map((f) => -f[type]) as any
-    // console.log(data)
-    stack.push({ data, ...optsFromType(type, colors) })
+  function processType({ ts, inverted = false, fs = frames, stack = 'stack' }) {
+    for (const t of ts || []) {
+      const data = fs.map((f) => getNested(f, t.split('_')) * (inverted ? -1 : 1)) as any
+      datasets.push({ data, ...optsFromType(t, colors, stack) })
+    }
   }
 
-  for (const type of lineTypes) {
-    const data = frames.map((f) => f[type]) as any
-    stack.push({ data, ...optsFromType(type, colors) })
-  }
+  processType({ ts: dt?.bar?.stacked })
+  processType({ ts: dt?.bar?.inverted, inverted: true })
+  processType({ ts: dt?.bar?.normal, stack: 'normal' })
+  processType({ ts: dt?.line })
 
-  // stack.push({ data: latencies, ...optsFromType('latency', colors) })
-  // stack.push({ data: getLatencies(frames, latencies), ...optsFromType('latency', colors) })
-
-  return stack
+  return datasets
 }
 
-function getOpts(type, label, color, order = null) {
+function optsFromType(type: string, colors, stack = 'stack') {
+  switch (type) {
+    case 'items_update':   return getOpts('bar', stack, 'Update', colors.update, 5) //prettier-ignore
+    case 'items_render':   return getOpts('bar', stack, 'Render', colors.render, 6) //prettier-ignore
+    case 'items_simulate': return getOpts('bar', stack, 'Simulate', colors.simulate, 7) //prettier-ignore
+    case 'items_snapshot': return getOpts('bar', stack, 'Snapshot', colors.snapshot, 8) //prettier-ignore
+
+    case 'backlog':  return getOpts('bar',  stack, wordify(type), colors.backlog, 10) //prettier-ignore
+    case 'network':  return getOpts('bar',  stack, wordify(type), colors.network, 7) //prettier-ignore
+    case 'activity': return getOpts('bar',  stack, wordify(type), colors.activity, 100) //prettier-ignore
+    case 'simulate': return getOpts('bar',  stack, wordify(type), colors.simulate, 1) //prettier-ignore
+    case 'latency':  return getOpts('line', stack, wordify(type), colors.latency) //prettier-ignore
+
+    default: return getOpts('bar', 'unknown', 'Unknown', colors.unknown, 1000) //prettier-ignore
+  }
+}
+
+function getOpts(type, yAxisID, label, color, order = null) {
   switch (type) {
     case 'bar':
       return {
         type: 'bar',
         order,
-        label: wordify(label),
-        yAxisID: label,
+        label: label,
+        yAxisID: yAxisID,
         backgroundColor: color,
         barPercentage: 0.9999,
         categoryPercentage: 1,
@@ -298,8 +313,8 @@ function getOpts(type, label, color, order = null) {
       return {
         type: 'line',
         order,
-        label: wordify(label),
-        yAxisID: label,
+        label: label,
+        yAxisID: yAxisID,
         backgroundColor: color,
         borderColor: color,
         pointStyle: false,
@@ -310,17 +325,10 @@ function getOpts(type, label, color, order = null) {
   }
 }
 
-function optsFromType(type: string, colors) {
-  switch (type) {
-    case 'items':    return getOpts('bar',  type, colors.update, 5) //prettier-ignore
-    case 'backlog':  return getOpts('bar',  type, colors.backlog, 10) //prettier-ignore
-    case 'network':  return getOpts('bar',  type, colors.network, 7) //prettier-ignore
-    case 'activity': return getOpts('bar',  type, colors.activity, 100) //prettier-ignore
-    case 'simulate': return getOpts('bar',  type, colors.simulate, 1) //prettier-ignore
-    case 'latency':  return getOpts('line', type, colors.latency) //prettier-ignore
-    default:         return getOpts('bar', 'unknown', colors.unknown, 1000) //prettier-ignore
-  }
-}
+
+//======================================================================================================
+//======================================================================================================
+//======================================================================================================
 
 
 // TODO: Accurate event latencies (from the reflector) from events as opposed to from frames
@@ -335,7 +343,7 @@ function getLatencies(frames: Frame[], latencies) {
 
   // console.log('delta', delta)
 
-  // first 
+  // first
   const _first = latencies[0]?.time || 0
   const _latest = latencies[latencies.length - 1]?.time || 0
   const first = _first < frames[0].start ? frames[0].start : _first
@@ -347,7 +355,7 @@ function getLatencies(frames: Frame[], latencies) {
   // we can get the timestamp of a frame: frames[i].start
   // we can get the timestamp of a latency: latencies[i].time
 
-  
+
   // console.log('newLatencies', newLatencies)
 
   // now for each latencies[i] if the value is lower than frames[i].start we return,

@@ -3,7 +3,8 @@ import filterModel from './filterModel'
 import theme from './theme'
 import { rgba, getRGB } from './colorUtils'
 import { equalObjects } from './object'
-import { wordify } from './string'
+import { wordify, getNested } from './string'
+import { round } from './math'
 
 export {
   updateUrlParams,
@@ -11,5 +12,6 @@ export {
   theme,
   rgba, getRGB,
   equalObjects,
-  wordify,
+  wordify, getNested,
+  round,
 }
