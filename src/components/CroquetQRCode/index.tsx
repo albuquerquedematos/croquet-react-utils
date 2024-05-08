@@ -11,14 +11,14 @@ export default function CroquetQRCode() {
   const [copyIcon, setCopyIcon] = useState(<LuClipboardList />)
   const [ref, hovering] = useHover()
 
-  const SIZE_BIG = 200
-  const SIZE_SMALL = 75
-  const OPACITY_SMALL = 0.3
-  const OPACITY_BIG = 1
+  const [sizeBig, set_sizeBig] = useState(200)
+  const sizeSmall = 75
+  const opacitySmall = 0.3
+  const opacityBig = 1
 
   const location = window.location.href
   const isExpanded = isPinned || hovering
-  const size = isExpanded ? SIZE_BIG : SIZE_SMALL
+  const size = isExpanded ? sizeBig : sizeSmall
 
   const togglePin = () => setIsPinned((prev) => !prev)
   const handleQRClick = () => window.open(location, '_blank')
@@ -29,16 +29,24 @@ export default function CroquetQRCode() {
     setTimeout(() => setCopyIcon(<LuClipboardList />), 1500)
   }
 
+  function handleScroll(e) {
+    set_sizeBig((prev) => {
+      const val = prev - e.deltaY / 2
+      return (val < 200) ? 200 : val
+    })
+  }
+
   return (
     <div
       ref={ref}
       className='croquet-qr-container'
       style={{
-        padding: isExpanded ? '' : `calc(${SIZE_SMALL}px / 10)`,
-        borderWidth: isExpanded ? '0.2rem' : `calc(${SIZE_SMALL}px / 30)`,
+        padding: isExpanded ? '' : `calc(${sizeSmall}px / 10)`,
+        borderWidth: isExpanded ? '0.2rem' : `calc(${sizeSmall}px / 30)`,
         width: `${size}px`,
-        opacity: isExpanded ? OPACITY_BIG : OPACITY_SMALL,
+        opacity: isExpanded ? opacityBig : opacitySmall,
       }}
+      onWheel={handleScroll}
     >
       {isExpanded && (
         <div className='top-bar' onClick={togglePin}>
