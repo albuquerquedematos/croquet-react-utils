@@ -228,7 +228,7 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
         }}
       />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.1rem 2rem', marginTop: '1rem', flexWrap: 'wrap' }}>
         <Label label='Buffer Size'>
           <InputNumber showButtons {...{ min: 1, max: 120, step: 5, value: bufferSize, onValueChange: (e) => set_bufferSize(e.value) }} />
         </Label>
@@ -263,18 +263,18 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
             />
           </div>
         </Label>
+      
+        <Label label='Buffer Max'>
+          <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
+            {bufferMax.map(([label, path]) => (
+              <div key={path} style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+                <div>{label}</div>
+                <code style={{ textWrap: 'nowrap' }}>{validMax(path)}</code>
+              </div>
+            ))}
+          </div>
+        </Label>
       </div>
-
-      <Label label='Buffer Max'>
-        <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
-          {bufferMax.map(([label, path]) => (
-            <div key={path} style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
-              <div>{label}</div>
-              <code style={{ textWrap: 'nowrap' }}>{validMax(path)}</code>
-            </div>
-          ))}
-        </div>
-      </Label>
     </>
   )
 }
