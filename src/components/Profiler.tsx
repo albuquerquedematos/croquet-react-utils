@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useInterval } from '@hooks'
 
 import { Chip } from 'primereact/chip'
@@ -22,7 +22,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js' //prettier-ignore
-import { Bar, Line, Chart } from 'react-chartjs-2'
+import { Chart } from 'react-chartjs-2'
 import { rgba, equalObjects, wordify, round, getNested } from '@utils'
 
 ChartJS.register(
@@ -53,20 +53,13 @@ type Frame = {
   connected: boolean
 }
 
-// const order = ['simulate', 'update', 'render', 'snapshot']
-// const types = ['total', 'items', 'backlog', 'network', 'activity']
-// const types = ['start', 'total', 'items', 'backlog', 'network', 'activity']
-// const hidden = ['start', 'total', 'items', 'users', 'backlog', 'network', 'latency', 'activity', 'connected']
-
 const dt: any = {
   line: ['latency'],
   bar: {
     // normal: ['activity'],
-    stacked: ['items_simulate', 'items_snapshot', 'items_update', 'items_render'],
+    stacked: ['total', 'items_simulate', 'items_snapshot', 'items_update', 'items_render'],
     inverted: ['backlog', 'network'],
   },
-  show: [],
-  // show: ['items_update', 'items_render', 'items_snapshot', 'items_simulate'],
 }
 
 const ptChipBtn = { root: { style: { cursor: 'pointer' } } }
@@ -113,11 +106,8 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
 
   const [colors, set_colors] = useState({})
   const [opacity, set_opacity] = useState(60)
-  const [min, set_min] = useState(-100)
-  const [max, set_max] = useState(50)
 
-  const [itemMaxAll, set_itemMaxAll] = useState([0, 0, 0])
-  const [itemMax, set_itemMax] = useState([0, 0, 0])
+  const [bufferMax, set_bufferMax] = useState([])
 
   useInterval(() => {
     const newFrames = [...window.CROQUETSTATS.frames]
@@ -128,7 +118,7 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     if (!equalObjects(newFrames, frames)) set_frames(newFrames)
   }, 0)
 
-  useInterval(() => updateItemMax(), 1000)
+  useInterval(() => updateBufferMax(), 1000)
 
   const frameBuffer = frames.slice(-bufferSize)
 
@@ -161,9 +151,7 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     },
     animation: { duration: 0 },
     responsive: true,
-    scales: {
-      x: { stacked: true, display: false, barThickness: 10 },
-    },
+    scales: { x: { stacked: true, display: false } },
   }
 
   useEffect(() => updateScales(), [])
@@ -172,8 +160,10 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     const scales = {} as any
     set_hide(scales)
     generateColors()
-    setTimeout(() => scales.stack = { stacked: true, display: false, min, max }, 1)
-    // setTimeout(() => hiddenScales.forEach((s) => (scales[s] = { display: false, min, max })), 1)
+    setTimeout(() => {
+      scales.stack = { stacked: true, display: true }
+      scales.inverted = { stacked: false, display: false }
+    }, 1)
   }
 
   function generateColors(alpha = opacity / 100) {
@@ -182,20 +172,32 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
     set_colors(cs)
   }
 
-  function updateItemMax() {
-    const updates = frameBuffer.map((f) => f?.items?.update) || []
-    const renders = frameBuffer.map((f) => f?.items?.render) || []
-    const simulates = frameBuffer.map((f) => f?.items?.simulate) || []
-    const newMaxAll = [Math.max(...updates, itemMaxAll[0]), Math.max(...renders, itemMaxAll[1]), Math.max(...simulates, itemMaxAll[2])]
-    const newMax = [Math.max(...updates), Math.max(...renders), Math.max(...simulates)]
-    if (!equalObjects(newMaxAll, itemMaxAll)) set_itemMaxAll(newMaxAll)
-    if (!equalObjects(newMax, itemMax)) set_itemMax(newMax)
+  function getMax(path: string) {
+    const arr = frameBuffer.map((f) => getNested(f, path.split('.'))) || [] as any
+    const clean = arr.filter((a) => a) // Remove any null or undefined values from the array
+    return Math.max(...clean)
   }
 
-  function getScaleMinMax(trackedScales, step) {
-    // trac
+  function validMax(path: string) {
+    const max = getMax(path)
+    if (max == Infinity || max == -Infinity || isNaN(max)) return '-'
+    else return round(getMax(path), 2) + ' ms'
   }
 
+  function updateBufferMax() {
+    const newMax = [
+      ['Update', 'items.update'],
+      ['Render', 'items.render'],
+      ['Simulate', 'items.simulate'],
+      ['Snapshot', 'items.snapshot'],
+      ['Total', 'total'],
+      ['Backlog', 'backlog'],
+      ['Network', 'network'],
+      // ['Activity', 'activity'],
+      ['Latency', 'latency'],
+    ]
+    if (!equalObjects(newMax, bufferMax)) set_bufferMax(newMax)
+  }
 
   return (
     <>
@@ -204,9 +206,8 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
           type: 'bar',
           data: {
             labels: frameBuffer.map((f) => f.start),
-            datasets: generateDatasets(frameBuffer, colors, latencies, min, max) as any,
+            datasets: generateDatasets(frameBuffer, colors) as any,
           },
-          // options: defaultOpts as any,
           options: { ...defaultOpts, scales: { ...defaultOpts.scales, ...hide } } as any,
         }}
       />
@@ -230,38 +231,20 @@ export default function Profiler({ bufferSize: bfs = 60, session }: ProfilerProp
         />
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
-        <p>
-          Min ({min}) / Max ({max})
-        </p>
-        <Slider
-          range
-          {...{
-            value: [min, max],
-            min: -2000,
-            max: 2000,
-            step: 10,
-            onChange: (e) => {
-              set_min(e.value[0] as number)
-              set_max(e.value[1] as number)
-              updateScales()
-            },
-            onSlideEnd: () => updateScales(),
-          }}
-        />
-      </div>
-
-      <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-        <span> Session / Buffer Max</span>
-        <span>Update ---- {round(itemMaxAll[0], 2)} ms  /  {round(itemMax[0], 2)} ms</span>
-        <span>Render ---- {round(itemMaxAll[1], 2)} ms  /  {round(itemMax[1], 2)} ms</span>
-        <span>Simulate -- {round(itemMaxAll[2], 2)} ms  /  {round(itemMax[2], 2)} ms</span>
+      <div style={{ marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}> Buffer Max</div>
+      <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
+        {bufferMax.map(([label, path]) => (
+          <div style={{ display: 'flex', alignItems: 'center', flexDirection: 'column' }}>
+            <div>{label}</div>
+            <code style={{ textWrap: 'nowrap' }}>{validMax(path)}</code>
+          </div>
+        ))}
       </div>
     </>
   )
 }
 
-function generateDatasets(frames: Frame[], colors, latencies = [], min, max) {
+function generateDatasets(frames: Frame[], colors) {
   if (!frames.length) return []
   const datasets = []
 
@@ -273,7 +256,7 @@ function generateDatasets(frames: Frame[], colors, latencies = [], min, max) {
   }
 
   processType({ ts: dt?.bar?.stacked })
-  processType({ ts: dt?.bar?.inverted, inverted: true })
+  processType({ ts: dt?.bar?.inverted, inverted: true, stack: 'inverted' })
   processType({ ts: dt?.bar?.normal, stack: 'normal' })
   processType({ ts: dt?.line })
 
@@ -282,15 +265,16 @@ function generateDatasets(frames: Frame[], colors, latencies = [], min, max) {
 
 function optsFromType(type: string, colors, stack = 'stack') {
   switch (type) {
-    case 'items_update':   return getOpts('bar', stack, 'Update', colors.update, 5) //prettier-ignore
-    case 'items_render':   return getOpts('bar', stack, 'Render', colors.render, 6) //prettier-ignore
-    case 'items_simulate': return getOpts('bar', stack, 'Simulate', colors.simulate, 7) //prettier-ignore
-    case 'items_snapshot': return getOpts('bar', stack, 'Snapshot', colors.snapshot, 8) //prettier-ignore
+    case 'items_update':   return getOpts('bar', stack, 'Update', colors.update, 20) //prettier-ignore
+    case 'items_render':   return getOpts('bar', stack, 'Render', colors.render, 30) //prettier-ignore
+    case 'items_simulate': return getOpts('bar', stack, 'Simulate', colors.simulate, 40) //prettier-ignore
+    case 'items_snapshot': return getOpts('bar', stack, 'Snapshot', colors.snapshot, 50) //prettier-ignore
 
+    case 'total':    return getOpts('bar',  stack, wordify(type), colors.total, 10) //prettier-ignore
     case 'backlog':  return getOpts('bar',  stack, wordify(type), colors.backlog, 10) //prettier-ignore
-    case 'network':  return getOpts('bar',  stack, wordify(type), colors.network, 7) //prettier-ignore
-    case 'activity': return getOpts('bar',  stack, wordify(type), colors.activity, 100) //prettier-ignore
-    case 'simulate': return getOpts('bar',  stack, wordify(type), colors.simulate, 1) //prettier-ignore
+    case 'network':  return getOpts('bar',  stack, wordify(type), colors.network, 5) //prettier-ignore
+    case 'activity': return getOpts('bar',  stack, wordify(type), colors.activity, 50) //prettier-ignore
+    case 'simulate': return getOpts('bar',  stack, wordify(type), colors.simulate, 60) //prettier-ignore
     case 'latency':  return getOpts('line', stack, wordify(type), colors.latency) //prettier-ignore
 
     default: return getOpts('bar', 'unknown', 'Unknown', colors.unknown, 1000) //prettier-ignore
@@ -324,45 +308,3 @@ function getOpts(type, yAxisID, label, color, order = null) {
       return {}
   }
 }
-
-
-//======================================================================================================
-//======================================================================================================
-//======================================================================================================
-
-
-// TODO: Accurate event latencies (from the reflector) from events as opposed to from frames
-function getLatencies(frames: Frame[], latencies) {
-  // const mss = latencies.map((l) => l.ms) || []
-  // const times = latencies.map((f) => f.time) || []
-
-  const start = frames[frames.length - 1].start
-  const now = performance.now()
-
-  const delta = now - start // time per frame
-
-  // console.log('delta', delta)
-
-  // first
-  const _first = latencies[0]?.time || 0
-  const _latest = latencies[latencies.length - 1]?.time || 0
-  const first = _first < frames[0].start ? frames[0].start : _first
-  const latest = _latest < frames[0].start ? frames[0].start : _latest
-
-  // newLatencies should be of size frames.length
-  const newLatencies = []
-  // we want to populate newLatencies with the latencies in the right order
-  // we can get the timestamp of a frame: frames[i].start
-  // we can get the timestamp of a latency: latencies[i].time
-
-
-  // console.log('newLatencies', newLatencies)
-
-  // now for each latencies[i] if the value is lower than frames[i].start we return,
-  // otherwise we add it to the newLatencies array. (in the right order)
-
-  return newLatencies
-}
-// frame.start = performance.now()
-// latencies[i].time = Date.now()
-// Date.now() - performance.now() = latency delta
