@@ -6,13 +6,12 @@ import { CroquetRoot, ReactModel, useReactModelRoot, useConnectedViews, useCroqu
 import { CroquetDevMenu, CroquetQRCode } from '@components'
 
 import 'primereact/resources/themes/lara-light-cyan/theme.css'
-import { useInterval } from '@hooks'
 
 export default class RootModel extends ReactModel {
   init(options) {
     super.init(options)
     this.subscribe(this.id, 'ping', this.ping)
-    this.simulate()
+    // this.simulate()
   }
   simulate() {
     for (let i = 0; i < 100000; i++) {
@@ -31,7 +30,7 @@ createRoot(container!).render(
       sessionParams={{
         model: RootModel,
         appId: 'test.croquet.react.utils',
-        apiKey: '',
+        apiKey: '', // Get your key at https://croquet.io/dev/account/
         password: 'password',
         name: 'test',
         options: {
@@ -51,7 +50,10 @@ function App() {
   const session = useCroquetSession()
 
   useEffect(() => {
-    setInterval(() => model.ping(), 750)
+    const interval = setInterval(() => model.ping(), 1000)
+    return () => {
+      clearInterval(interval)
+    }
   }, [])
 
   return (
